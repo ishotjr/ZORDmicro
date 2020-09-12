@@ -14,6 +14,7 @@ import adafruit_sdcard
 import digitalio
 import storage
 import os
+import rtc
 
 
 # ui dimensions
@@ -97,30 +98,41 @@ carret_blink_state = True
 
 
 
-def dirr():
+def dir_command():
     sdcard = adafruit_sdcard.SDCard(spi, digitalio.DigitalInOut(sd_cs))
     vfs = storage.VfsFat(sdcard)
     storage.mount(vfs, '/sd')
     return "{}\n\r".format(os.listdir('/sd/'))
 
-def memm():
+def mem_command():
     return "{} BYTES FREE\n\r".format(gc.mem_free())
+
+def uname_command():
+    sys = os.uname()
+    return "{}\n\r{}\n\r".format(sys.machine, sys.version)
+
+def time_command():
+    dt = rtc.RTC().datetime
+    return "{:02d}:{:02d}\n\r".format(dt.tm_hour, dt.tm_min)
 
 
 def run_command(command):
-    # already congains \n
+    # already contains \n
     term.write("{}\r".format(command))
 
     mapp = {
-        "dir\n": dirr,
-        "mem\n": memm
+        "dir\n": dir_command,
+        "ls\n": dir_command,
+        "mem\n": mem_command,
+        "uname\n": uname_command,
+        "time\n": time_command
     }
     #term.write("c:{} s:{}\n\r".format(command, mapp.keys()))
     func = mapp.get(str(command), lambda: "Invalid command\n\r")
     term.write(func())
 
 term.write("ZORDmicro v1\n\r")
-term.write(memm())
+term.write(mem_command())
 
 
 while True:
